@@ -1,3 +1,5 @@
 result.xml
 __pycache__
 .pytest_cache
+jenkins-data/
+jenkins-docker-certs/
