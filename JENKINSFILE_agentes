@@ -1,0 +1,108 @@
+pipeline {
+    agent none
+
+    stages {
+        stage('Get Code') {
+            agent { label 'master' }
+            steps {
+                echo 'Downloading code'
+                git 'https://github.com/anieto-unir/helloworld.git'
+                sh 'ls -la'
+                stash name: 'code', includes: '**/*,.*'
+                echo WORKSPACE
+                sh 'whoami'
+                sh 'hostname'
+            }
+            post {
+                always {
+                    deleteDir()
+                }
+            }
+        }
+        
+        stage('Build') {
+            agent { label 'linux1' }
+            steps {
+                echo 'Build code'
+                echo WORKSPACE
+                sh 'whoami'
+                sh 'hostname'
+            }
+            post {
+                always {
+                    deleteDir()
+                }
+            }
+        }
+
+        stage('Tests') {
+            parallel {
+                stage('Unit') {
+                    agent { label 'linux2' }
+                    steps {
+                        echo WORKSPACE
+                        sh 'whoami'
+                        sh 'hostname'
+                        unstash 'code'
+                        sh '''
+                            export PYTHONPATH=$WORKSPACE
+                            pytest --junitxml=result-unit.xml test/unit
+                        '''
+                        stash name: 'result-unit', includes: 'result-unit.xml'
+                    }
+                    post {
+                        always {
+                            deleteDir()
+                        }
+                    }
+                }
+                
+                stage('Rest') {
+                    agent { label 'linux1' }
+                    steps {
+                        echo WORKSPACE
+                        sh 'whoami'
+                        sh 'hostname'
+                        unstash 'code'
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh '''
+                                export PYTHONPATH=$WORKSPACE
+                                export FLASK_APP=app/api.py
+                                export FLASK_ENV=development
+                                flask run &
+                                java -jar /opt/wiremock/wiremock-standalone-3.13.0.jar --port 9090 --root-dir test/wiremock &
+                                pytest --junitxml=result-rest.xml  test/rest
+                            '''
+                        }
+                        stash name: 'result-rest', includes: 'result-rest.xml'
+                        
+                    }
+                    post {
+                        always {
+                            deleteDir()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Results') {
+            agent { label 'linux' }
+            steps {
+                echo WORKSPACE
+                sh 'whoami'
+                sh 'hostname'
+                unstash 'result-unit'
+                unstash 'result-rest'
+                junit 'result*.xml'
+            }
+            post {
+                always {
+                    deleteDir()
+                }
+            }
+        }
+        
+
+    }
+}
