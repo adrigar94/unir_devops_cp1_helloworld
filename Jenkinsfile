@@ -5,7 +5,7 @@ pipeline {
         stage('Get Code') {
             steps {
                 echo 'Downloading code'
-                git 'https://github.com/anieto-unir/helloworld.git'
+                git branch: 'develop', url: 'https://github.com/adrigar94/unir_devops_cp1_helloworld.git'
                 sh 'ls -la'
                 echo WORKSPACE
             }
