@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
 
 # Instala paquetes Python globalmente con override de protección
 RUN pip3 install --break-system-packages --upgrade pip && \
-    pip3 install --break-system-packages pytest flask
+    pip3 install --break-system-packages pytest flask flake8 bandit coverage
 
 RUN mkdir /var/run/sshd
 
@@ -24,5 +24,11 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 COPY wiremock /opt/wiremock
 RUN chmod -R a+r /opt/wiremock
+
+COPY jmeter/apache-jmeter-5.6.3.zip /opt/
+RUN mkdir -p /opt/jmeter && \
+    unzip /opt/apache-jmeter-5.6.3.zip -d /opt/jmeter && \
+    rm /opt/apache-jmeter-5.6.3.zip \
+    chmod -R a+rx /opt/jmeter
 
 CMD ["/usr/sbin/sshd", "-D"]
