@@ -26,9 +26,9 @@ COPY wiremock /opt/wiremock
 RUN chmod -R a+r /opt/wiremock
 
 COPY jmeter/apache-jmeter-5.6.3.zip /opt/
-RUN mkdir -p /opt/jmeter && \
-    unzip /opt/apache-jmeter-5.6.3.zip -d /opt/jmeter && \
-    rm /opt/apache-jmeter-5.6.3.zip \
-    chmod -R a+rx /opt/jmeter
+RUN unzip /opt/apache-jmeter-5.6.3.zip -d /opt/ && \
+rm /opt/apache-jmeter-5.6.3.zip
+RUN mv /opt/apache-jmeter-5.6.3 opt/jmeter
+RUN chmod -R a+r /opt/jmeter
 
 CMD ["/usr/sbin/sshd", "-D"]
