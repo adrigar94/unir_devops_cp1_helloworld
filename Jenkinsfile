@@ -27,9 +27,10 @@ pipeline {
                         unstash 'code'
                         sh '''
                             export PYTHONPATH=$WORKSPACE
-                            pytest --junitxml=result-unit.xml test/unit
+                            coverage run --source=app --omit=app/__init__.py,app/api.py -m pytest test/unit --junitxml=result-unit.xml
                         '''
                         junit 'result-unit.xml'
+                        stash name: 'coverage-report', includes: '**/.coverage'
                     }
                     post {
                         always {
@@ -78,6 +79,35 @@ pipeline {
             }
         }
 
+        stage('Coverage') {
+            steps {
+                echo WORKSPACE
+                sh 'whoami'
+                sh 'hostname'
+                unstash 'code'
+                unstash 'coverage-report'
+                sh '''
+                    export PYTHONPATH=$WORKSPACE
+                    coverage xml -o cobertura.xml
+                '''
+                recordCoverage(
+                    tools: [[parser: 'COBERTURA']],
+                    sourceCodeRetention: 'EVERY_BUILD',
+                    qualityGates: [
+                        [threshold: 85.0, metric: 'LINE', baseline: 'PROJECT', failBuild: true],
+                        [threshold: 95.0, metric: 'LINE', baseline: 'PROJECT', unstable: true],
+                        [threshold: 80.0, metric: 'BRANCH', baseline: 'PROJECT', failBuild: true],
+                        [threshold: 90.0, metric: 'BRANCH', baseline: 'PROJECT', unstable: true]
+                    ]
+                )
+            }
+            post {
+                always {
+                    deleteDir()
+                }
+            }
+        }
+
         stage('Static') {
             steps {
                 echo WORKSPACE
@@ -90,7 +120,7 @@ pipeline {
                 '''
                 recordIssues tools: [flake8(pattern: 'static.out')],
                     qualityGates: [
-                        [threshold: 8, type: 'TOTAL', unestable: true],
+                        [threshold: 8, type: 'TOTAL', unstable: true],
                         [threshold: 10, type: 'TOTAL', criticality: 'ERROR'],
                     ]
             }
@@ -115,7 +145,7 @@ pipeline {
                 '''
                 recordIssues tools: [pyLint(pattern: 'security.out')],
                     qualityGates: [
-                        [threshold: 2, type: 'TOTAL', unestable: true],
+                        [threshold: 2, type: 'TOTAL', unstable: true],
                         [threshold: 4, type: 'TOTAL', criticality: 'ERROR'],
                     ]
             }
