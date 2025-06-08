@@ -27,7 +27,7 @@ pipeline {
                         unstash 'code'
                         sh '''
                             export PYTHONPATH=$WORKSPACE
-                            coverage run --source=app --omit=app/__init__.py,app/api.py -m pytest test/unit --junitxml=result-unit.xml
+                            coverage run --branch --source=app --omit=app/__init__.py,app/api.py -m pytest test/unit --junitxml=result-unit.xml
                         '''
                         junit 'result-unit.xml'
                         stash name: 'coverage-report', includes: '**/.coverage'
